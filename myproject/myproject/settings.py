@@ -3,7 +3,6 @@ Django settings for myproject project.
 """
 
 import os
-import dj_database_url
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -42,7 +41,7 @@ GIGACHAT_SCOPE = 'GIGACHAT_API_PERS'
 # Middleware
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Добавьте эту строку!
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -59,11 +58,30 @@ ROOT_URLCONF = 'myproject.urls'
 
 # База данных
 DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
-        conn_max_age=600
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
+
+# Если есть переменная окружения DATABASE_URL (для PostgreSQL)
+if os.environ.get('DATABASE_URL'):
+    import re
+    db_url = os.environ.get('DATABASE_URL')
+    
+    # Парсинг DATABASE_URL
+    match = re.match(r'postgresql://(.+):(.+)@(.+):(\d+)/(.+)', db_url)
+    if match:
+        user, password, host, port, db_name = match.groups()
+        
+        DATABASES['default'] = {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': db_name,
+            'USER': user,
+            'PASSWORD': password,
+            'HOST': host,
+            'PORT': port,
+        }
 
 # Статические файлы
 STATIC_URL = '/static/'
@@ -71,7 +89,6 @@ if not DEBUG:
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Остальные настройки остаются как есть...
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
